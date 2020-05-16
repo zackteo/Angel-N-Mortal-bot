@@ -20,6 +20,8 @@
 
 (def writer_mortal (clojure.java.io/writer "mortal.log" :append true))
 
+(def writer_error (clojure.java.io/writer "error.log" :append true))
+
 (def writer6 (clojure.java.io/writer "ignore.log" :append true))
 
 ; list of telegram id and their corresponding angel n mortal
@@ -53,8 +55,15 @@
         (let [angel-id (:angel ((keyword-ify id) pairing))]
           (println "Sending: " message)
           (clojure.pprint/pprint message writer_angel)
-          (t/send-text token angel-id (clojure.string/replace (:text message) #"/msg_angel " "Message from your Mortal:\n\n"))
-          (t/send-text token id "Sent!"))
+          (try
+            (t/send-text token angel-id (clojure.string/replace (:text message) #"/msg_angel " "Message from your Mortal:\n\n"))
+            (t/send-text token id "Sent!")
+            (catch Exception e
+              (println "Error")
+              (clojure.pprint/pprint (.toString e) writer_error)              
+              (clojure.pprint/pprint (.getStackTrace e) writer_error)
+              (t/send-text token id "There was an error here. Message was not sent!")
+              (println "Test"))))
         (let [test-id id]
           (println "Intercepted message: " message)
           (clojure.pprint/pprint message writer6)
@@ -66,8 +75,15 @@
         (let [mortal-id (:mortal ((keyword-ify id) pairing))]
           (println "Sending: " message)
           (clojure.pprint/pprint message writer_mortal)
-          (t/send-text token mortal-id (clojure.string/replace (:text message) #"/msg_mortal " "Message from your Angel:\n\n"))
-          (t/send-text token id "Sent!"))
+          (try
+            (t/send-text token mortal-id (clojure.string/replace (:text message) #"/msg_mortal " "Message from your Angel:\n\n"))
+            (t/send-text token id "Sent!")
+            (catch Exception e
+              (println "Error")
+              (clojure.pprint/pprint (.toString e) writer_error)              
+              (clojure.pprint/pprint (.getStackTrace e) writer_error)
+              (t/send-text token id "There was an error here. Message was not sent!")
+              (println "Test"))))
         (let [test-id id]
           (println "Intercepted message: " message)
           (clojure.pprint/pprint message writer6)
@@ -92,5 +108,4 @@
     (System/exit 1))
 
   (println "Starting the angelnmortal_bot")
-  
-  (<!! (p/start token handler)))
+  (<!!(p/start token handler)))
