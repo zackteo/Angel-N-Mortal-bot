@@ -10,6 +10,8 @@
 ; TODO: fill correct token
 (def token (env :telegram-token))
 
+(def writer1 (clojure.java.io/writer "start.log" :append true))
+
 (def writer_angel (clojure.java.io/writer "angel.log" :append true))
 
 (def writer_mortal (clojure.java.io/writer "mortal.log" :append true))
@@ -25,6 +27,7 @@
    :xxxxxxxxx {:angel xxxxxxxxx :mortal xxxxxxxxx}     
    :xxxxxxxxx {:angel xxxxxxxxx :mortal xxxxxxxxx}})    
 
+;; Helper functions                                       
 (defn keyword-ify [id]
   "Takes an int/string and return a keyword"
   (keyword (str id)))
@@ -36,9 +39,10 @@
 
 ;;Handlers
 (defn text-handler [message id]
-  (let [id (angel-mortal state id)]
+  (let [rid (angel-mortal state id)]
     (println "Sending: " message)
-    (t/send-text token id (:text message))))
+    (t/send-text token rid (:text message))
+    (t/send-text token id "Sent!")))
 
 (defn state-handler [message id]
   (println (str (:username (:from message)) " changing state"))
@@ -56,10 +60,11 @@
 
 (defn photo-handler [message id]
   (let [fid (-> message :photo last :file_id) filename (str fid ".png")
-        id (angel-mortal state id)]
+        rid (angel-mortal state id)]
     (t/download-file token fid)
     (h/message-fn "Sending Photo")
-    (t/send-photo token id (clojure.java.io/as-file filename))))
+    (t/send-photo token rid (clojure.java.io/as-file filename))
+    (t/send-text token id "Sent!")))
   
 (defn video-handler [message id]
   (t/send-text token id "I don't do video yet"))
@@ -95,13 +100,13 @@
 ;; Rest
 (defn start-handler [message id]
   (println "Bot joined new chat: " message)
-;  (clojure.pprint/pprint message writer1)
+  (clojure.pprint/pprint message writer1)
   (t/send-text token id "Welcome to angelnmortal_bot!"))
 
 
 (defn help-handler [message id]
   (println "Help was requested in " message)
-  (t/send-text token id "Hello My Fellow Refugee :P\n\n/msg_angel -insert text here- to message your angel\n/msg_mortal -insert text here- to message your mortal\nYou will see \"Sent!\" when your message is sent! :)\n\nDo take this time to get to know someone from our community better! And do be nice and be encouraging - especially given the current situation :x\n\nHave fun!!!"))
+  (t/send-text token id "Hello My Fellow Refugee :P\n\n/msg_angel -insert text here- to message your angel\n/msg_mortal -insert text here- to message your mortal\nYou will see \"Sent!\" when your message is sent! :)\n\n/swap to swap between angel or mortal as recipient!\nThis works with both text messages and photos!:D\n\nDo take this time to get to know someone from our community better! And do be nice and be encouraging - especially given the current situation :x\n\nHave fun!!!"))
 
 (defn msg-angel-handler [message id]
       (if (:angel ((keyword-ify id) pairing))
